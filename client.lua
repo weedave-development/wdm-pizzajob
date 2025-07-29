@@ -35,7 +35,7 @@ RegisterNetEvent('wdm-pizzajob:client:startJob', function()
     returningVehicle = false
     resetAvailableLocations()
     if not deliveryVehicle or not DoesEntityExist(deliveryVehicle) then
-        local vehicleHash = GetHashKey('faggio')
+        local vehicleHash = Config.VehicleHash
         exports.qbx_core:Notify("Take your vehicle and head to the delivery locations! Hurry!", "info")
         RequestModel(vehicleHash)
         while not HasModelLoaded(vehicleHash) do Wait(10) end
@@ -202,8 +202,10 @@ CreateThread(function()
                 end
                 exports.qbx_core:Notify("Thank you for your work! You can do more deliveries after a break.", "success")
                 Wait(2000)
-                exports.qbx_core:Notify("For returning my car, Here is a bonus payment out $50!", "success")
-                TriggerServerEvent('wdm-pizzajob:server:bonuspay')
+                if Config.BonusPayment then
+                    exports.qbx_core:Notify("For returning my car, Here is a bonus payment out $50!", "success")
+                    TriggerServerEvent('wdm-pizzajob:server:bonuspay')
+                end
             end
         else
             if showingReturnText then

@@ -15,6 +15,6 @@ RegisterNetEvent('wdm-pizzajob:server:bonuspay', function()
     local src = source
     local Player = exports.qbx_core:GetPlayer(src)
     if Player then
-        exports.qbx_core:AddMoney(source, 'cash', 50, "Pizza Delivery Bonus")
+        exports.qbx_core:AddMoney(source, 'cash', Config.PaymentPerDelivery, "Pizza Delivery Bonus")
     end
 end)

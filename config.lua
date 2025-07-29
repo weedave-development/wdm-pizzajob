@@ -28,3 +28,6 @@ Config.PedModels = {
 
 Config.PizzaShop = {x = 538.34, y = 101.71, z = 96.53}
 Config.VehicleSpawn = {x = 535.54, y = 96.54, z = 96.34, heading = 0.0}
+Config.VehicleHash = 'faggio' -- Vehicle model for pizza delivery
+Config.PaymentPerDelivery = 50 -- Payment for each delivery
+Config.BonusPayment = false -- Set to true if you want bonus payment for deliveries
