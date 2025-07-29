@@ -1,26 +1,15 @@
+Config = Config or {}
+
 local pizzaJobActive = false
 local deliveryBlip = nil
 local deliveryVehicle = nil
 local deliveryCount = 0
 local cooldownActive = false
 local returningVehicle = false
-
-local deliveryLocations = { -- Make sure 10 different locations is on here only, no more, no less otherwise it wont work!
-   {x = 73.71, y = -1937.68, z = 20.0},
-  {x = 129.83, y = -1854.5, z = 23.9},
- {x = 171.28, y = -1871.34, z = 23.4},
-{x = 405.85, y = -1751.11, z = 28.71},
-{x = 373.83, y = 427.87, z = 144.68},
-{x = 57.5, y = 449.59, z = 146.07},
-{x = -230.37, y = 488.35, z = 127.77},
-{x = 151.6, y = -72.87, z = 66.67},
-{x = 320.61, y = -1759.8, z = 28.64},
-{x = 405.43, y = -1795.76, z = 28.09}
-}
-
 local availableLocations = {}
 
-local pizzaShop = {x = 538.34, y = 101.71, z = 96.53} -- Pizza shop location
+local deliveryLocations = Config.DeliveryLocations
+local pizzaShop = Config.PizzaShop
 
 CreateThread(function()
     local blip = AddBlipForCoord(pizzaShop.x, pizzaShop.y, pizzaShop.z)
@@ -47,11 +36,10 @@ RegisterNetEvent('wdm-pizzajob:client:startJob', function()
     resetAvailableLocations()
     if not deliveryVehicle or not DoesEntityExist(deliveryVehicle) then
         local vehicleHash = GetHashKey('faggio')
-         exports.qbx_core:Notify("Take your vehicle and head to the delivery locations! Hurry!", "info")
+        exports.qbx_core:Notify("Take your vehicle and head to the delivery locations! Hurry!", "info")
         RequestModel(vehicleHash)
         while not HasModelLoaded(vehicleHash) do Wait(10) end
-        vec3(535.54, 96.54, 96.34)
-        deliveryVehicle = CreateVehicle(vehicleHash, 535.54, 96.54, 96.34, 0.0, true, false)
+        deliveryVehicle = CreateVehicle(vehicleHash, Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z, Config.VehicleSpawn.heading, true, false)
         -- Give keys to player
         TriggerEvent('vehiclekeys:client:SetOwner', GetVehicleNumberPlateText(deliveryVehicle))
     end
@@ -68,7 +56,7 @@ function StartNextDelivery()
         return
     end
 
-    -- This picks a random unused location
+    -- Pick a random unused location
     local idx = math.random(#availableLocations)
     local locIndex = availableLocations[idx]
     table.remove(availableLocations, idx)
@@ -84,11 +72,12 @@ function StartNextDelivery()
     EndTextCommandSetBlipName(deliveryBlip)
     SetNewWaypoint(loc.x, loc.y)
 
-    -- Spawn ped at location
-    local pedModel = `a_f_m_fatwhite_01`
+    -- Spawn random ped at location
+    local pedModelName = Config.PedModels[math.random(#Config.PedModels)]
+    local pedModel = GetHashKey(pedModelName)
     RequestModel(pedModel)
     while not HasModelLoaded(pedModel) do Wait(10) end
-    local deliveryPed = CreatePed(4, pedModel, loc.x, loc.y, loc.z, loc.heading, false, true)
+    local deliveryPed = CreatePed(4, pedModel, loc.x, loc.y, loc.z, loc.heading or 0.0, false, true)
     SetEntityAsMissionEntity(deliveryPed, true, true)
     FreezeEntityPosition(deliveryPed, true)
     SetBlockingOfNonTemporaryEvents(deliveryPed, true)
@@ -109,11 +98,20 @@ function StartNextDelivery()
                     lib.hideTextUI()
                     showingDeliveryText = false
                     RemoveBlip(deliveryBlip)
+
+                    -- Freeze ped, play give emote, then unfreeze ped
+                    FreezeEntityPosition(deliveryPed, true)
+                    RequestAnimDict("mp_common")
+                    while not HasAnimDictLoaded("mp_common") do Wait(10) end
+                    TaskPlayAnim(PlayerPedId(), "mp_common", "givetake1_a", 8.0, -8.0, 1500, 49, 0, false, false, false)
+                    Wait(1500)
+                    ClearPedTasks(PlayerPedId())
+                    FreezeEntityPosition(deliveryPed, false)
+
                     TriggerServerEvent('wdm-pizzajob:server:pay')
                     deliveryCount = deliveryCount + 1
 
                     -- Make ped walk away and despawn
-                    FreezeEntityPosition(deliveryPed, false)
                     TaskGoStraightToCoord(deliveryPed, pedCoords.x + 10.0, pedCoords.y, pedCoords.z, 1.0, -1, 0.0, 0.0)
                     Wait(3000)
                     DeleteEntity(deliveryPed)
@@ -203,9 +201,9 @@ CreateThread(function()
                     DeleteEntity(deliveryVehicle)
                 end
                 exports.qbx_core:Notify("Thank you for your work! You can do more deliveries after a break.", "success")
-                wait (2000)
-                  exports.qbx_core:Notify("For returning my car, Here is a bonus payment out $50!", "success")
-                    TriggerServerEvent('wdm-pizzajob:server:bonuspay')
+                Wait(2000)
+                exports.qbx_core:Notify("For returning my car, Here is a bonus payment out $50!", "success")
+                TriggerServerEvent('wdm-pizzajob:server:bonuspay')
             end
         else
             if showingReturnText then
